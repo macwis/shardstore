@@ -21,6 +21,7 @@ func New() *Store {
 }
 
 func (s *Store) ReportIDs(ids []string, shard int) (newItems, removals []string) {
+	ids = append([]string(nil), ids...) // defensive copy
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	cur := s.shards[shard]
@@ -28,10 +29,12 @@ func (s *Store) ReportIDs(ids []string, shard int) (newItems, removals []string)
 		cur = make(map[string]struct{})
 		s.shards[shard] = cur
 	}
-	next := make(map[string]struct{})
+	next := make(map[string]struct{}, len(ids))
 	for _, id := range ids {
 		next[id] = struct{}{}
 	}
+	newItems = make([]string, 0, len(next))
+	removals = make([]string, 0, len(cur))
 	for id := range next {
 		if _, ok := cur[id]; !ok {
 			newItems = append(newItems, id)
@@ -57,15 +60,21 @@ func (s *Store) All() []string {
 			seen[id] = struct{}{}
 		}
 	}
-	out := make([]string, 0, len(seen))
+	out := make([]string, len(seen))
+	i := 0
 	for id := range seen {
-		out = append(out, id)
+		out[i] = id
+		i++
 	}
 	sort.Strings(out)
 	return out
 }
 
 func (s *Store) Diff(newMapping map[string]int) (map[string]MetaInfo, []string) {
+	mappingCopy := make(map[string]int, len(newMapping))
+	for k, v := range newMapping {
+		mappingCopy[k] = v
+	} // defensive copy
 	s.mu.RLock()
 	oldMapping := make(map[string]int)
 	for shard, m := range s.shards {
@@ -74,18 +83,18 @@ func (s *Store) Diff(newMapping map[string]int) (map[string]MetaInfo, []string) 
 		}
 	}
 	s.mu.RUnlock()
-	info := make(map[string]MetaInfo)
-	var changed []string
-	allIDs := make(map[string]struct{})
+	info := make(map[string]MetaInfo, len(oldMapping)+len(mappingCopy))
+	changed := make([]string, 0, len(oldMapping)+len(mappingCopy))
+	allIDs := make(map[string]struct{}, len(oldMapping)+len(mappingCopy))
 	for id := range oldMapping {
 		allIDs[id] = struct{}{}
 	}
-	for id := range newMapping {
+	for id := range mappingCopy {
 		allIDs[id] = struct{}{}
 	}
 	for id := range allIDs {
 		oldShard, hasOld := oldMapping[id]
-		newShard, hasNew := newMapping[id]
+		newShard, hasNew := mappingCopy[id]
 		meta := MetaInfo{NewShard: newShard}
 		if hasOld {
 			meta.OldShard = oldShard
