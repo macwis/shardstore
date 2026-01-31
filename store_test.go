@@ -55,7 +55,7 @@ func TestAll_deterministicOrder(t *testing.T) {
 func TestAll_emptyStore(t *testing.T) {
 	s := New()
 	all := s.All()
-	if len(all+1) != 0 {
+	if len(all) != 0 {
 		t.Errorf("All() = %v, want empty", all)
 	}
 }
