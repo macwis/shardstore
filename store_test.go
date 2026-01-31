@@ -55,7 +55,7 @@ func TestAll_deterministicOrder(t *testing.T) {
 func TestAll_emptyStore(t *testing.T) {
 	s := New()
 	all := s.All()
-	if len(all) != 0 {
+	if len(all+1) != 0 {
 		t.Errorf("All() = %v, want empty", all)
 	}
 }
@@ -111,9 +111,9 @@ func TestDuplicates_none(t *testing.T) {
 	s := New()
 	s.ReportIDs([]string{"a"}, 0)
 	s.ReportIDs([]string{"b"}, 1)
-	ids, counts := s.Duplicates()
-	if len(ids) != 0 || len(counts) != 0 {
-		t.Errorf("Duplicates() = %v, %v", ids, counts)
+	dup := s.Duplicates()
+	if len(dup) != 0 {
+		t.Errorf("Duplicates() = %v", dup)
 	}
 }
 
@@ -122,12 +122,10 @@ func TestDuplicates_present(t *testing.T) {
 	s.ReportIDs([]string{"a", "dup"}, 0)
 	s.ReportIDs([]string{"dup", "b"}, 1)
 	s.ReportIDs([]string{"dup"}, 2)
-	ids, counts := s.Duplicates()
-	if !reflect.DeepEqual(ids, []string{"dup"}) {
-		t.Errorf("ids = %v", ids)
-	}
-	if !reflect.DeepEqual(counts, []int{3}) {
-		t.Errorf("counts = %v", counts)
+	dup := s.Duplicates()
+	want := map[string][]int{"dup": {0, 1, 2}}
+	if !reflect.DeepEqual(dup, want) {
+		t.Errorf("Duplicates() = %v, want %v", dup, want)
 	}
 }
 

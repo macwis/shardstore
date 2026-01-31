@@ -100,7 +100,7 @@ func (s *Store) Diff(newMapping map[string]int) (map[string]MetaInfo, []string) 
 	return info, changed
 }
 
-func (s *Store) Duplicates() ([]string, []int) {
+func (s *Store) Duplicates() map[string][]int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	idToShards := make(map[string][]int)
@@ -109,14 +109,12 @@ func (s *Store) Duplicates() ([]string, []int) {
 			idToShards[id] = append(idToShards[id], shard)
 		}
 	}
-	var ids []string
-	var shardCounts []int
+	out := make(map[string][]int)
 	for id, shards := range idToShards {
 		if len(shards) > 1 {
-			ids = append(ids, id)
-			shardCounts = append(shardCounts, len(shards))
+			sort.Ints(shards)
+			out[id] = shards
 		}
 	}
-	sort.Strings(ids)
-	return ids, shardCounts
+	return out
 }
